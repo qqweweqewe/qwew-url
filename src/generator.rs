@@ -1,8 +1,10 @@
+use std::sync::atomic::{AtomicU64, Ordering};
+
 pub struct UriGenerator {
     alphabet: Vec<char>,
     alphabet_len: usize,
     length: usize,
-    counter: u64,
+    counter: AtomicU64,
 }
 
 impl UriGenerator {
@@ -16,21 +18,20 @@ impl UriGenerator {
             alphabet: alphabet_chars,
             alphabet_len: alphabet.len(),
             length,
-            counter: 0,
+            counter: AtomicU64::new(0),
         }
     }
-    
-    // aight f that just counting in base-*alphabet length* is reliable enough. yeah boring, so what?
-    pub fn next(&mut self) -> String {
+
+    pub fn next(&self) -> String {
+        let current_count = self.counter.fetch_add(1, Ordering::Relaxed) as usize;
         let mut out: Vec<char> = Vec::with_capacity(self.length);
-        let mut temp_count = self.counter as usize;
+        let mut temp_count = current_count;
 
         for _ in 0..self.length {
             out.push(self.alphabet[temp_count % self.alphabet_len]);
             temp_count /= self.alphabet_len;
         }
 
-        self.counter += 1;
         out.iter().collect()
     }
 }
